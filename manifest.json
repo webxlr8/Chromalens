@@ -1,0 +1,52 @@
+{
+    "manifest_version": 3,
+    "name": "ChromaLens - Color Picker & Accessibility Toolkit",
+    "version": "1.1.0",
+    "description": "Professional color picker, palette extractor, contrast checker & WCAG accessibility auditor. Pick colors, generate harmonies, analyze websites.",
+    "author": "Muhammed Azharudheen K J - YIB Global Technology Services LLP",
+    "homepage_url": "https://webxlr8.com",
+    "permissions": [
+        "activeTab",
+        "scripting",
+        "storage",
+        "contextMenus",
+        "tabs"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "content/select-area.js",
+                "content/select-area.css"
+            ],
+            "matches": [
+                "http://*/*",
+                "https://*/*"
+            ]
+        }
+    ],
+    "action": {
+        "default_popup": "popup.html",
+        "default_icon": {
+            "16": "icons/icon16.png",
+            "48": "icons/icon48.png",
+            "128": "icons/icon128.png"
+        }
+    },
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    },
+    "commands": {
+        "_execute_action": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+Y",
+                "mac": "Command+Shift+Y"
+            },
+            "description": "Open Color Picker"
+        }
+    }
+}
