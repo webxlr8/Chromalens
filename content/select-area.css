@@ -1,0 +1,37 @@
+#chromalens-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.4);
+    cursor: crosshair;
+    z-index: 2147483647;
+}
+
+#chromalens-selection {
+    position: fixed;
+    border: 3px solid #667eea;
+    background: rgba(102, 126, 234, 0.2);
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+    z-index: 2147483647;
+    display: none;
+}
+
+#chromalens-instruction {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 2147483647;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+}
