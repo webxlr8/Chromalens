@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm compile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Build Chrome
+        run: pnpm build
+
+      - name: Build Firefox
+        run: pnpm build:firefox
+
+      - name: AMO lint (Firefox)
+        run: pnpm web-ext lint --source-dir .output/firefox-mv3 --no-config-discovery
+
+      - name: Store zips
+        run: pnpm zip && pnpm zip:firefox
+
+      - name: Upload zips
+        uses: actions/upload-artifact@v4
+        with:
+          name: chromalens-zips
+          path: |
+            .output/*-chrome.zip
+            .output/*-firefox.zip
+            .output/*-sources.zip

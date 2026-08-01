@@ -5,9 +5,15 @@ export default defineConfig({
   // Force MV3 for ALL targets (Chrome, Firefox, Edge). WXT defaults Firefox/Safari to MV2.
   manifestVersion: 3,
   manifest: ({ browser }) => ({
-    name: 'ChromaLens - Color Picker & Accessibility Toolkit',
+    // Firefox limits name to 45 chars and description to 132 chars
+    name:
+      browser === 'firefox'
+        ? 'ChromaLens - Color Picker'
+        : 'ChromaLens - Color Picker & Accessibility Toolkit',
     description:
-      'Professional color picker, palette extractor, contrast checker & WCAG accessibility auditor. Pick colors, generate harmonies, analyze websites.',
+      browser === 'firefox'
+        ? 'Professional color picker, palette extractor, contrast checker & WCAG accessibility auditor.'
+        : 'Professional color picker, palette extractor, contrast checker & WCAG accessibility auditor. Pick colors, generate harmonies, analyze websites.',
     author: 'Muhammed Azharudheen K J - YIB Global Technology Services LLP',
     homepage_url: 'https://webxlr8.com',
     permissions: ['activeTab', 'scripting', 'storage', 'contextMenus', 'tabs'],
