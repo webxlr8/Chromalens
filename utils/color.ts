@@ -253,6 +253,10 @@ export function getContrastRatio(fgHex: string, bgHex: string): number {
     return (lighter + 0.05) / (darker + 0.05);
 }
 
+export function isLargeText(fontSizePx: number, fontWeight: number): boolean {
+    return fontSizePx >= 24 || (fontSizePx >= 18.66 && fontWeight >= 700);
+}
+
 export function getRecommendedColor(fgHex: string, bgHex: string): string {
     const ratio = getContrastRatio(fgHex, bgHex);
     if (ratio >= 4.5) return fgHex;
