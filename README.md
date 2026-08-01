@@ -80,6 +80,10 @@ components/icons.ts        # SVG icon factories
 tests/                     # vitest suites
 ```
 
+## Privacy
+
+ChromaLens collects nothing. No analytics, no telemetry, no network calls from the extension. Everything you save (favorites, recents, palettes, theme) stays in your browser's local storage on your device.
+
 ## Contributing & License
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, gates, and commit style. Released under the [MIT License](LICENSE) — the ChromaLens name and logo are not covered by the license.
