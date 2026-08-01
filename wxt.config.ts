@@ -10,7 +10,10 @@ export default defineConfig({
       browser === 'firefox'
         ? 'ChromaLens - Color Picker'
         : 'ChromaLens - Color Picker & Accessibility Toolkit',
-    // Display label shown in the Chrome/Edge Web Store (version stays store-valid)
+    // Store manifests must use numeric versions (CWS/Edge/AMO reject prerelease strings).
+    // The package version (2.0.0-beta.1) drives zips + GitHub release tags.
+    version: '2.0.0',
+    // Display label shown in the Chrome/Edge Web Store
     version_name: browser === 'firefox' ? undefined : '2.0.0 Beta',
     description:
       browser === 'firefox'

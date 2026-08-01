@@ -1,8 +1,7 @@
 {
   "name": "chromalens",
   "description": "Professional color picker, palette extractor, contrast checker & WCAG accessibility auditor. Pick colors, generate harmonies, analyze websites.",
-  "private": true,
-  "version": "2.0.0",
+  "version": "2.0.0-beta.1",
   "type": "module",
   "engines": {
     "node": ">=24 <25"
