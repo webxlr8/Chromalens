@@ -70,7 +70,3 @@ utils/                     # pure logic: color, image, storage, types
 components/icons.ts        # SVG icon factories
 tests/                     # vitest suites
 ```
-
-## Credits
-
-Muhammed Azharudheen K J · Emmanul S Ayakara · YIB Global Technology Services LLP · [webxlr8.com](https://webxlr8.com)

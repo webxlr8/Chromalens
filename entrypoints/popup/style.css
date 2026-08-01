@@ -796,33 +796,6 @@ header h1 {
 }
 
 /* Utility */
-.modal-divider {
-    border: none;
-    border-top: var(--glass-border);
-    margin: 16px 0;
-}
-
-.credits-label {
-    font-size: 10px;
-    font-weight: 800;
-    color: var(--text-muted);
-    margin-bottom: 8px;
-}
-
-.website {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--accent);
-    text-decoration: none;
-    font-size: 12px;
-    font-weight: 600;
-    margin-top: 8px;
-}
-
-.website:hover {
-    text-decoration: underline;
-}
 
 /* Audit Styles */
 .audit-summary {

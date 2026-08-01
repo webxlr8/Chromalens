@@ -29,4 +29,3 @@ Color Picker & Accessibility Toolkit Chrome/Firefox extension. Migrating from va
 - Keep permissions identical: activeTab, scripting, storage, contextMenus, tabs. No new permissions, no host_permissions.
 - Never touch `main` branch. Commit on `wxt-migration` with descriptive messages.
 - Don't delete or rewrite the old root-level files (popup.js, audit.js, etc.) — CL7 handles cleanup after verification.
-- Credits in popup: Muhammed Azharudheen K J, Emmanul S Ayakara, YIB Global Technology Services LLP, webxlr8.com.
