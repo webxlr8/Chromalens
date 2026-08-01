@@ -4,6 +4,7 @@ export default defineBackground(() => {
   type BackgroundRequest = {
     action: string;
     tabId?: number;
+    color?: string;
     bounds?: {
       x: number;
       y: number;
@@ -77,6 +78,85 @@ export default defineBackground(() => {
         })();
 
         return false; // No response needed, popup is closing
+      }
+
+      // Start cross-browser picker — capture viewport, then inject the picker overlay
+      if (request.action === 'start_pick') {
+        const tabId = request.tabId;
+        if (tabId === undefined) {
+          return false;
+        }
+
+        void (async () => {
+          try {
+            const tab = await browser.tabs.get(tabId);
+            const url = tab.url || '';
+
+            // Skip restricted URLs
+            if (
+              url.startsWith('chrome://') ||
+              url.startsWith('edge://') ||
+              url.startsWith('about:') ||
+              url.startsWith('chrome-extension://') ||
+              url.startsWith('moz-extension://') ||
+              !url.startsWith('http')
+            ) {
+              return;
+            }
+
+            // 1. Capture the visible viewport
+            const dataUrl = await browser.tabs.captureVisibleTab(
+              browser.windows.WINDOW_ID_CURRENT,
+              { format: 'png' },
+            );
+
+            // 2. Stage the screenshot for the picker content script
+            await browser.storage.local.set({
+              pendingPick: {
+                screenshot: dataUrl,
+                dpr: window.devicePixelRatio || 1,
+              },
+            });
+
+            // 3. Inject the picker overlay
+            await browser.scripting.insertCSS({
+              target: { tabId },
+              files: ['/content-scripts/pick-screen.css'],
+            });
+            await browser.scripting.executeScript({
+              target: { tabId },
+              files: ['/content-scripts/pick-screen.js'],
+            });
+          } catch {
+            // Capture or injection failed — ignore
+            await browser.storage.local.remove('pendingPick').catch(() => {});
+          }
+        })();
+
+        return false; // No response needed, popup is closing
+      }
+
+      // Color was picked — store result for the popup
+      if (request.action === 'pick_selected') {
+        const color = request.color as string | undefined;
+        if (color) {
+          void (async () => {
+            try {
+              await browser.storage.local.set({ pendingPickResult: { color } });
+              await browser.action.setBadgeText({ text: '!' });
+              await browser.action.setBadgeBackgroundColor({ color: '#667eea' });
+            } catch {
+              // Ignore
+            }
+          })();
+        }
+        return false;
+      }
+
+      // Picker cancelled
+      if (request.action === 'pick_cancelled') {
+        void browser.storage.local.remove('pendingPick').catch(() => {});
+        return false;
       }
 
       // Area was selected — capture screenshot and store

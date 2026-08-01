@@ -1,7 +1,7 @@
 // ChromaLens WCAG Audit + Site Palette Content Script (injected on demand)
 // Ported from audit.js — shared color math now imported from utils/color.
 
-import { getLuminance, kMeansClustering, rgbToHex } from '../utils/color';
+import { getLuminance, isLargeText, kMeansClustering, rgbToHex } from '../utils/color';
 import type { Violation } from '../utils/types';
 
 // Cache regex for performance
@@ -104,11 +104,11 @@ function scanPage(): Violation[] {
 
     const ratio = getContrastRatio(fgParsed, bgParsed);
 
-    // WCAG AA thresholds
+    // WCAG AA thresholds (large text = 24px or 18.66px bold)
     const fontSize = parseFloat(style.fontSize);
     const fontWeight = parseInt(style.fontWeight) || 400;
-    const isLargeText = fontSize >= 18 || (fontSize >= 14 && fontWeight >= 700);
-    const threshold = isLargeText ? 3 : 4.5;
+    const largeText = isLargeText(fontSize, fontWeight);
+    const threshold = largeText ? 3 : 4.5;
 
     if (ratio < threshold) {
       // Get truncated text content
@@ -130,7 +130,7 @@ function scanPage(): Violation[] {
         required: threshold.toFixed(1),
         fontSize: fontSize,
         fontWeight: fontWeight,
-        isLargeText: isLargeText,
+        isLargeText: largeText,
         threshold: threshold,
       });
       count++;
