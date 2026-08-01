@@ -1,39 +1,76 @@
-# ChromaLens - Color Picker & Accessibility Toolkit
+# ChromaLens — Color Picker & Accessibility Toolkit
 
-ChromaLens is a professional-grade browser extension designed for designers and developers. It combines a high-precision color picker, palette extractor, harmony generator, and WCAG accessibility auditor into a single, elegant tool.
+Professional color picker, palette extractor, contrast checker & WCAG accessibility auditor. Built with [WXT](https://wxt.dev) + TypeScript, targeting Chrome, Edge, and Firefox (MV3).
 
-## 🚀 Features
+## Features
 
-- **Precision Color Picker**: Pick any color from your screen using the native EyeDropper API.
-- **Color Harmonies**: Generate Complementary, Analogous, Triadic, and Monochromatic palettes instantly.
-- **Advanced Extraction**:
-  - **Site Extract**: Pull dominant colors directly from any website's CSS and assets.
-  - **Screen Capture**: Select any area on the screen to extract its color profile using K-means clustering.
-  - **Image Extract**: Right-click any image or upload your own to analyze its palette.
-- **WCAG Accessibility Auditor**: Scan any webpage for contrast issues. Get real-time violations reports and recommended color fixes to meet AA/AAA standards.
-- **Design Toolkit**: Save your favorite colors and export them in CSS Variables, SCSS, Tailwind Config, or JSON formats.
-- **UI/UX Pro Max**: A modern, responsive interface with glassmorphism, dark/light mode support, and professional iconography.
+- **Precision Color Picker**: native EyeDropper API (Chromium)
+- **Color Harmonies**: complementary, analogous, triadic, split-complementary, tetradic, square, monochromatic
+- **Extraction**:
+  - **Site Extract**: dominant colors from any page's CSS (weighted k-means in CIELAB)
+  - **Screen Capture**: select an area on the page → capture → extract palette
+  - **Image Extract**: right-click any image or upload a file
+- **WCAG Audit**: contrast scan with AA/AAA badges and recommended-color fixes
+- **Favorites + Export**: CSS variables, SCSS, Tailwind config, JSON
+- Light/dark/auto theme
 
-## 🛠️ Installation
+## Stack
 
-1. Clone or download this repository.
-2. Open Chrome and navigate to `chrome://extensions/`.
-3. Enable **Developer mode** (toggle in the top right).
-4. Click **Load unpacked** and select the project folder.
+- [WXT](https://wxt.dev) 0.21 — build framework, per-browser manifests (service worker for Chromium, event page for Firefox)
+- TypeScript (strict), Vite 8, Vitest 4, ESLint (typescript-eslint)
+- Node 24 LTS (see `.nvmrc`), pnpm 10
+- Zero runtime dependencies
 
-## ⌨️ Shortcuts
+## Development
 
-- **Open Picker**: `Ctrl+Shift+Y` (Windows) / `Command+Shift+Y` (Mac)
+```bash
+pnpm install          # installs deps, runs wxt prepare
+pnpm dev              # Chrome with HMR
+pnpm dev:firefox      # Firefox with HMR
+```
 
-## 🎨 Design System
+## Verification
 
-ChromaLens 1.1.0 uses a modern design system:
-- **Primary Colors**: Indigo & Violet
-- **Neutral Palette**: Slate (950 to 50)
-- **Styling**: Glassmorphism, smooth transitions, and Lucide-inspired iconography.
+```bash
+pnpm compile          # tsc --noEmit
+pnpm lint             # eslint
+pnpm test             # vitest
+pnpm build            # .output/chrome-mv3
+pnpm build:firefox    # .output/firefox-mv3
+```
 
-## 📄 License
+Manual load: `chrome://extensions` → Load unpacked → `.output/chrome-mv3`. Firefox: `about:debugging` → Load Temporary Add-on → `.output/firefox-mv3/manifest.json`.
 
-Developed by Muhammed Azharudheen K J & Emmanul S Ayakara.
-Project of YIB Global Technology Services LLP.
-Visit us at [webxlr8.com](https://webxlr8.com).
+## Publishing
+
+```bash
+pnpm zip              # Chrome/Edge store zip → .output/*-chrome.zip
+pnpm zip:firefox      # Firefox store zip + sources zip → .output/*-firefox.zip + *-sources.zip
+```
+
+Firefox (AMO) requires the sources zip. To rebuild from it:
+
+```bash
+pnpm i && pnpm zip:firefox
+```
+
+`wxt submit` can automate store uploads — run `pnpm wxt submit init` once and store credentials in `.env.submit` (never commit it).
+
+Safari: `pnpm wxt build -b safari` then wrap `.output/safari-mv3` with `xcrun safari-web-extension-packager`.
+
+## Structure
+
+```
+entrypoints/
+  background.ts            # service worker / event page
+  popup/                   # popup UI (index.html, main.ts, style.css)
+  audit.content.ts         # WCAG audit + site palette (injected on demand)
+  select-area.content.ts   # area selection overlay (injected on demand)
+utils/                     # pure logic: color, image, storage, types
+components/icons.ts        # SVG icon factories
+tests/                     # vitest suites
+```
+
+## Credits
+
+Muhammed Azharudheen K J · Emmanul S Ayakara · YIB Global Technology Services LLP · [webxlr8.com](https://webxlr8.com)
