@@ -1,229 +1,158 @@
-# ChromaLens → WXT Migration — Plan v1
+# ChromaLens → WXT Migration — Plan v2 (EXECUTION)
 
 **Date:** 2026-08-01
-**Status:** DRAFT
+**Status:** DRAFT (v1 architecture approved-in-principle; v2 adds Google-style execution)
 **Branch:** `wxt-migration`
-**Research sources:**
-- WXT docs (wxt.dev): migrate guide, project structure, entrypoints, manifest config, extension APIs, scripting, content scripts, storage, unit testing, publishing, targets, compare page
-- MDN Chrome incompatibilities + Firefox MV3 event-page status (bugzilla meta 1573659)
-- Framework comparison data: ExtensionBooster 2026 (build times/bundle sizes), PlugThis 2026, redreamality 2025, WXT compare page
-- Full source read of the current extension (every file, 2,500+ lines)
+**Changelog v2:** execution methodology (Google engineering process), Claude Code delegation model, CL breakdown with acceptance criteria, review gates + CI, verification pyramid (unit → static → build → AMO lint → browser UI/E2E), staged rollout + rollback, updated risks.
+
+**Research sources:** (unchanged from v1) WXT docs, MDN, framework comparisons, full source read. Plus: claude-code skill (v2.2.0), cross-modal-review skill, superpowers-verification-before-completion skill. Claude Code 2.1.177 installed + authed via 9Router (ANTHROPIC_BASE_URL=http://127.0.0.1:20128/v1). gh 2.89 available.
 
 ---
 
-## RESEARCH FINDINGS
+## RESEARCH FINDINGS (from v1 — kept verbatim)
 
 ### Framework landscape (2026)
 | Option | Verdict | Why |
 |---|---|---|
-| **WXT** | ✅ CHOICE | Actively maintained (216 contributors, regular 2026 releases), framework-agnostic, auto per-browser manifests, small bundles (387KB React test vs Plasmo 812KB; vanilla output ~60-90KB), fastest builds (1.2s), HMR, first-class TS, Firefox sources ZIP, `wxt submit` automation for Chrome/Firefox/Edge |
-| Plasmo | ❌ | React-first, heavier bundles, maintenance yellow flag |
-| CRXJS | ❌ | Maintainer stepped back, Firefox beta/yellow, ESM content scripts WIP |
-| Extension.js | ❌ | Webpack-based, smaller ecosystem, no advantage for this codebase |
-| Vanilla + dual manifest (current main) | ⚠️ fallback | Zero deps, works, but hand-rolled manifests, no HMR/TS, Safari requires manual work; fine as the non-migration path |
+| **WXT** | ✅ CHOICE | Actively maintained (216 contributors), framework-agnostic, auto per-browser manifests, smallest bundles, fastest builds, HMR, first-class TS, Firefox sources ZIP, `wxt submit` automation |
+| Plasmo / CRXJS / Extension.js | ❌ | React-heavy or unmaintained or no advantage |
+| Vanilla + dual manifest (current main) | ⚠️ fallback | Kept on `main` as zero-dep fallback path |
 
-### WXT facts that shape the architecture (verified from docs)
-1. `browser` global (`wxt/browser`, auto-imported) — promise-style API that works on Chromium, Firefox, AND Safari. Replaces both `chrome.*` callbacks and our manual callback rewrites.
-2. Entrypoints live in `entrypoints/`; background = `defineBackground`, on-demand scripts = `defineContentScript({ registration: 'runtime' })`, injected via `browser.scripting.executeScript({ files: ['content-scripts/<name>.js'] })`. **No `web_accessible_resources` needed** for this pattern.
-3. Manifest is generated from `wxt.config.ts` + entrypoints. No `manifest.json` in source. Icons auto-discovered from `public/` or set explicitly via `manifest.icons`.
-4. Firefox MV3 in WXT: default target is MV2 for Firefox/Safari — we explicitly force MV3 for all targets (`manifestVersion: 3`) to match current codebase and AMO's MV3 direction.
-5. Entrypoint rule: `browser.*` calls MUST live inside `main()` — no top-level API usage (Node import during build).
-6. Storage: docs explicitly recommend keeping an existing storage wrapper during migration. Our localStorage usage is fine — wrap it typed, don't rewrite.
-7. Unit testing: `WxtVitest` plugin + `@webext-core/fake-browser` — our 46 assertions port directly to vitest.
+### WXT facts that shape architecture (verified from docs)
+1. `browser` global (`wxt/browser`, auto-imported) — promise-style API on Chromium, Firefox, Safari.
+2. On-demand scripts = `defineContentScript({ registration: 'runtime' })` injected via `browser.scripting.executeScript({ files: ['content-scripts/<name>.js'] })`. No WAR needed.
+3. Manifest generated from `wxt.config.ts` + entrypoints. Icons explicit via `manifest.icons`.
+4. Force `manifestVersion: 3` for all targets (WXT defaults Firefox/Safari to MV2).
+5. `browser.*` calls MUST live inside `main()` of entrypoints (Node import during build).
+6. Storage: keep existing wrapper during migration (WXT docs explicitly).
+7. Unit testing: `WxtVitest` plugin + `@webext-core/fake-browser`.
 
-### Codebase facts found during full read (matters for the plan)
-| Finding | Location | Action |
+### Codebase facts (from full read)
+| Finding | Action |
+|---|---|
+| **Bug: duplicate `pendingCapture` handlers** (popup.js:224 + :454) — double-processing race | Fix in CL6 |
+| **Duplicated logic** — audit.js re-implements k-means/contrast/luminance | Import shared `utils/color.ts` (CL5) |
+| **Dead code** — storage.js never imported | Delete (CL7) |
+| **Empty CSS stubs** — audit.css, palette.css (31 bytes) | Delete (CL7) |
+| **Vestigial WAR entry** in manifest | Dropped automatically by WXT pattern |
+| Dev-only: generate_icons.js, test_node.js, test_utils.mjs | scripts/ + vitest port (CL2, CL7) |
+
+---
+
+## 1. GOALS / NON-GOALS (from v1)
+
+**Goals:** WXT foundation, TS everywhere, zero behavior change to 5 views (Picker, Harmony, Capture site/screen/image, Audit, Saved), fix known bugs, 46 assertions ported green, publish automation ready.
+**Non-goals:** no UI framework, no sync storage, no typed-messaging lib, no Safari packaging this phase (documented path exists).
+
+## 2. ARCHITECTURE DECISIONS (from v1 — D1..D8, unchanged)
+D1 WXT · D2 strict TS · D3 `registration:'runtime'` content scripts · D4 shared `utils/` · D5 MV3 forced all targets · D6 pnpm · D7 typed localStorage wrapper (keys `chromaLens_*` preserved) · D8 light popup split (index.ts + utils/image.ts + components/icons.ts).
+
+## 3. TARGET STRUCTURE (from v1 — file-by-file mapping, unchanged)
+`entrypoints/` (background.ts, popup/{index.html,index.ts,style.css}, audit.content.ts, select-area.content.ts) · `utils/` (color.ts, color-data.ts, image.ts, storage.ts, types.ts) · `components/icons.ts` · `tests/` · `public/icons/` · `scripts/generate-icons.mjs` · `wxt.config.ts` · `vitest.config.ts` · `tsconfig.json` · deleted: storage.js, audit.css, palette.css, manifest.json, manifest.firefox.json, build.sh, dist/, *.bmp, old test files.
+
+## 4. MANIFEST MAPPING (from v1 — permissions parity: activeTab, scripting, storage, contextMenus, tabs — unchanged; WAR dropped; gecko id conditional for firefox target)
+
+## 5. API MIGRATION MAP (from v1 — chrome.* → browser.* promise style; undoes v1 callback rewrites)
+
+## 6. BUG FIXES (from v1 — duplicate pendingCapture, audit.js duplication, dead storage.js, empty css; EyeDropper fallback kept)
+
+## 7. TESTING STRATEGY (v1 base + v2 pyramid — see §9 L0-L5)
+
+## 8. BUILD / PUBLISH MATRIX (from v1 — dev/build/zip/submit per browser; safari via xcrun packager)
+
+---
+
+## 9. EXECUTION METHODOLOGY — GOOGLE-STYLE
+
+### 9.1 Engineering principles (how Google runs this kind of change)
+1. **Design doc before code** — this plan is the design doc; reviewed by user before any implementation.
+2. **Small, reviewable CLs** — one logical change per commit; each reviewable in one sitting; no mega-diffs.
+3. **Tests before code (TDD)** — new logic lands with tests written first (red → green → refactor).
+4. **Independent review** — every CL reviewed by a different AI model (cross-modal review), then by the user (approver). No self-review.
+5. **Presubmit gates in CI** — lint, typecheck, unit tests, both browser builds, AMO lint; PR cannot merge with any red gate.
+6. **Staged rollout** — 2.0.0 ships via Chrome Web Store staged rollout (10% → 50% → 100%); Firefox AMO review is the canary gate.
+7. **Instant rollback** — v1.1.0 zip archived; revert commit on `main` is a one-command path; store-side version rollback available.
+
+### 9.2 Roles
+| Role | Who | Responsibility |
 |---|---|---|
-| **Bug: duplicate `pendingCapture` handlers** — two `chrome.storage.local.get(['pendingCapture'])` blocks run on popup open (lines 224 + 454); both process the same capture → double-processing race | popup.js | Fix during migration: single handler, remove badge+storage exactly once |
-| **Duplicated logic** — audit.js re-implements kMeans, luminance, contrast, rgbToHex instead of importing utils.js | audit.js | Import from shared `utils/` (WXT bundles it — impossible to share before) |
-| **Dead code** — `storage.js` wrapper never imported anywhere (popup uses localStorage directly) | storage.js | Delete; replace with typed `utils/storage.ts` |
-| **Empty CSS stubs** — audit.css, palette.css are 31-byte stubs | root | Delete; fold nothing (popup.css covers all) |
-| **Vestigial WAR entry** — `web_accessible_resources` for select-area, unnecessary with scripting API | manifest.json | Dropped (WXT never emits it for this pattern) |
-| **Dev-only scripts** — generate_icons.js, test_node.js, test_utils.mjs | root | generate_icons → `scripts/` (kept), tests → vitest |
-| **Duplicate area-selection code** — select-area.js overlays + popup.js crop modal both draw selection rectangles (page vs popup context — different, but crop-modal logic is dead for the screen flow since popup closes; verify during migration) | — | Verify, keep behavior identical |
+| Tech lead / orchestrator | Hermes (me) | Plan, CL specs, verification, review triage, merge |
+| Implementation engineer | Claude Code CLI | Write code per CL spec, commit to `wxt-migration` |
+| Independent reviewer | Different AI model (cross-modal review) | Diff review per substantive CL: bugs, races, missing tests, UI regressions |
+| Approver | Azhar | Approves plan, reviews findings, final sign-off, store publishing |
+
+### 9.3 Delegation model (Claude Code)
+- **Workspace prep (before CL1):** `CLAUDE.md` at repo root (architecture summary, commands, standards, constraints: never touch `main`, preserve `chromaLens_*` keys, no framework, TS strict) + `.claude/settings.json` (permissions: allow Read/Edit/Write/Bash(pnpm|node|npx|git); deny Read(.env*), force-push, rm -rf).
+- **Invocation (print mode per CL):**
+  `claude -p "<CL spec from this plan>" --allowedTools "Read,Edit,Write,Bash(git *),Bash(pnpm *),Bash(node *),Bash(npx *),Bash(cp *),Bash(mv *),Bash(rm *),Bash(mkdir *)" --max-turns 25 --max-budget-usd 5 --output-format json` with `workdir=/Users/azharudh33n/Development/Chroma Lens/Color-Picker`
+- **Session continuity:** `--continue` for fix iterations on the same CL.
+- **Trust rule (Iron Law):** Claude Code's success report is NEVER accepted as evidence. After every CL: check `git diff`, re-run every gate myself, screenshot the UI. Evidence before claims (verification-before-completion skill).
+- **Failure handling:** CL hits max-turns or budget → inspect partial `git diff`, fix remaining bits myself with patch/write_file, re-delegate only if large scope remains.
+
+### 9.4 Verification pyramid (every CL passes its level; full stack before merge)
+| Level | Gate | Command / Tool | Evidence |
+|---|---|---|---|
+| L0 | Static | `tsc --noEmit` + eslint (flat config) | 0 errors |
+| L1 | Unit | `pnpm test` (vitest: 46 ported + new image/storage tests) | 0 failures, output shown |
+| L2 | Build | `pnpm build` + `pnpm build:firefox` | exit 0 |
+| L3 | Manifest parity | diff generated manifests vs v1 (permissions identical) | no diff in permissions |
+| L4 | AMO lint | `web-ext lint --source-dir .output/firefox-mv3` | 0 errors |
+| L5 | Browser UI/E2E | Playwright (chromium + firefox, extension loaded in persistent context): open popup, click all 5 views + 3 capture modes + modals, assert zero console errors, screenshot every view; visual diff vs v1 baseline screenshots | screenshots + console log clean |
+| L6 | Manual QA | User checklist: Chrome + Firefox, every feature, 10 min | user sign-off |
+
+### 9.5 Definition of Done (per CL)
+- Spec implemented exactly (diff reviewed line-by-line vs CL spec)
+- L0-L2 green (L3-L5 for the CLs that touch manifest/UI)
+- No console errors in browser session
+- Committed on `wxt-migration` with descriptive message; no changes to `main`
+- Cross-modal review findings resolved or explicitly deferred with user approval
 
 ---
 
-## 1. GOALS / NON-GOALS
+## 10. CHANGE LIST (CLs) — execution order, delegation targets
 
-**Goals**
-- WXT as the build foundation: one config, per-browser outputs (chrome/firefox/edge/safari-ready)
-- TypeScript everywhere (first-class WXT support)
-- Zero behavior change to the 5 views: Picker, Harmony, Capture (site/screen/image), Audit, Saved
-- Fix the known bugs above while migrating
-- All 46 existing assertions ported to vitest, green
-- Publishing automation ready: `wxt zip` + `wxt submit` (Chrome/Edge/Firefox)
+| CL | Scope | TDD / tests | Acceptance (beyond DoD) |
+|---|---|---|---|
+| **CL1** | Scaffold: `pnpm dlx wxt@latest init` (vanilla template), wxt.config.ts (manifest config, MV3 forced, icons, commands, gecko conditional), tsconfig.json, vitest.config.ts, eslint, .gitignore, CLAUDE.md, .claude/settings.json | — | `wxt prepare` generates .wxt/; `pnpm build` + `build:firefox` exit 0 with entrypoint stubs |
+| **CL2** | `utils/color.ts` + `utils/color-data.ts` — pure port of utils.js/color_data.js to strict TS | Port all 46 assertions to vitest FIRST, run red against JS? (no — port tests + code together, then green; new tests for typed edge cases) | `pnpm test` green ≥46; tsc clean |
+| **CL3** | `utils/types.ts`, `utils/storage.ts` (typed localStorage wrapper, `chromaLens_*` keys), `utils/image.ts` (extractColorsFromImage, cropImageToBounds extracted from popup.js), `components/icons.ts` (SVG factories) | New: storage round-trip tests, image crop/extract tests (canvas mocked) | `pnpm test` green incl. new; tsc clean |
+| **CL4** | `entrypoints/background.ts` — port background.js (context menu, message router, captureVisibleTab, scripting injection) inside `defineBackground(main)` | Message-router unit tests (fake-browser) | Build green both targets; manifest shows worker (chrome) / scripts (firefox) |
+| **CL5** | `entrypoints/audit.content.ts` + `entrypoints/select-area.content.ts` — `registration:'runtime'`, import utils/color.ts (kill duplication), same message protocol | audit scan/extract unit tests (jsdom for DOM parts) | Build green; `content-scripts/audit.js` + `select-area.js` present; injectable via executeScript |
+| **CL6** | `entrypoints/popup/` — port popup.html/css/js (index.html + index.ts + style.css), wiring per API migration map; **fix duplicate pendingCapture bug**; keep EyeDropper fallback | Storage wrapper used everywhere (no raw localStorage in popup) | Build green; popup renders; console clean (L5 partial: popup-only screenshots) |
+| **CL7** | Cleanup: delete storage.js, audit.css, palette.css, *.bmp, build.sh, manifest*.json, old tests, dist/; README (dev/build/submit — AMO sources-review requirement); scripts/generate-icons.mjs | — | `git diff` shows only intended deletions; full L0-L4 re-run |
+| **CL8** | CI: GitHub Actions workflow on PR → main: pnpm install, eslint, tsc, vitest, build chrome+firefox, web-ext lint, upload zips as artifacts | — | Workflow green on a draft PR of the branch |
+| **CL9** | Publish: version 2.0.0, `wxt zip` + `zip:firefox`, sources-zip rebuild test (`pnpm i && pnpm zip:firefox` inside extracted zip), `wxt submit init` dry-run | — | Zips build; sources zip rebuilds identically; submit dry-run passes (secrets when store accounts ready) |
 
-**Non-goals (YAGNI — explicitly rejected)**
-- No UI framework (React/Vue/Svelte) — popup is 5 views of DOM code; a framework is a rewrite with zero user-visible gain
-- No @wxt-dev/storage / sync storage — localStorage persists fine in extension popups across all targets; sync adds quota rules for no user need
-- No typed messaging module (`wxt/utils/messaging`) — a shared `MessageMap` type gives the same safety with no magic
-- No Safari packaging in this phase — needs Apple dev account + Xcode; WXT keeps the door open (`wxt build -b safari` + `xcrun safari-web-extension-packager`)
+Dependencies: CL1 → CL2 → CL3 → CL4/CL5 → CL6 → CL7 → CL8 → CL9. CL4 and CL5 independent once CL3 done. Estimated 8-12h wall time (delegation + verification dominates).
 
----
+## 11. REVIEW GATES & CI
 
-## 2. ARCHITECTURE DECISIONS (each: decision → why → alternatives rejected)
+- **After each CL (me):** `git diff` review vs spec → run L0-L4 gates → record evidence. Any failure → fix loop back to Claude Code (`--continue`) or direct patch.
+- **Cross-modal review (skill):** after CL4 (background/API semantics), CL5 (content scripts), CL6 (popup + bug fix), and the full branch before PR: spawn a different model to review the diff against this plan's contract. Findings presented to you — **you decide** (user sovereignty, no auto-apply).
+- **PR:** `wxt-migration` → `main` draft PR; CI (CL8) must be green; final human review = you.
+- **Merge rule:** only after L0-L5 green + all review findings resolved + your explicit approval.
 
-### D1. WXT over everything else
-**Why:** only actively-maintained framework; smallest bundles; auto per-browser manifests including Firefox event-page handling; HMR; TS first-class; store submission automation; Safari path exists.
-**Rejected:** Plasmo (React lock-in, heavier), CRXJS (unmaintained), Extension.js (Webpack, smaller ecosystem), vanilla dual-manifest (kept on `main` as fallback — zero-dependency path if WXT ever fails us; migration doesn't delete it, branch supersedes it).
+## 12. ROLLOUT & ROLLBACK (staged, Google-style)
+1. Load unpacked builds in Chrome + Firefox (L6 manual QA).
+2. Chrome Web Store: draft → publish with staged rollout 10% → 50% → 100% (monitor store ratings/issues between steps, min 24h each).
+3. Firefox AMO: submit sources zip; AMO review is the independent canary (expect 1-7 days).
+4. Rollback triggers: crash reports, console errors spike, store complaints about 2.0.0. Rollback = store-side version revert to 1.1.0 (zip archived) + revert commit on main. WXT pin in package.json prevents tooling drift.
 
-### D2. TypeScript (strict) over JS
-**Why:** WXT generates `.wxt/types` (typed entrypoints, imports, manifest env vars); `Browser` namespace types the whole extension API; catches the class of bugs we found (dead storage.js, duplicate handlers) at compile time; migration cost is low because the code is already clean ESM with clear signatures.
-**Rejected:** keep `.js` — saves ~1 hour now, costs type safety for every future feature; user explicitly wants the best long-term option.
-
-### D3. `registration: 'runtime'` content scripts for audit + select-area (on-demand injection)
-**Why:** identical behavior to today (no injection until user acts), no `host_permissions` needed, works in Firefox and Chrome (`browser.scripting.executeScript`), WXT bundles them and shares the module graph (audit.ts can import utils.ts — kills the duplication).
-**Rejected:** always-declared content scripts with `matches: http/https` — injects into every page at load, larger permission surface, changes runtime behavior. Rejected.
-
-### D4. Shared `utils/` module for all pure logic
-**Why:** one implementation of k-means/contrast/lab/VP-tree used by popup AND audit content script; testable in vitest without browser mocks.
-**Rejected:** keeping audit.js self-contained (current state) — maintains the duplication.
-
-### D5. `manifestVersion: 3` forced for all targets
-**Why:** matches current MV3 codebase; AMO accepts MV3 event pages; single manifest version to reason about.
-**Rejected:** WXT default (MV2 for Firefox/Safari) — diverges from existing code and adds a second manifest version to support.
-
-### D6. pnpm as package manager
-**Why:** WXT docs' default, disk-efficient (node_modules dedupe), pnpm 10.33 already installed.
-**Rejected:** npm (works, slower, no real advantage), bun (1.3.14 available, fine but less battle-tested with WXT — documented as supported).
-
-### D7. Typed localStorage wrapper (`utils/storage.ts`) instead of raw calls
-**Why:** WXT storage docs explicitly bless keeping an existing wrapper during migration; typed wrapper centralizes keys (`chromaLens_*` preserved → user data survives the migration), removes 6 scattered `localStorage.setItem` calls.
-**Rejected:** @wxt-dev/storage — behavior change (storage.sync quotas), new dependency, zero user benefit.
-
-### D8. Light popup split (3 files) instead of 1×1197-line file
-**Why:** `entrypoints/popup/index.ts` (wiring + views), `utils/image.ts` (extractColorsFromImage, cropImageToBounds — unit-testable), `components/icons.ts` (SVG string factories). Splits the largest file without over-engineering; image pipeline becomes testable.
-**Rejected:** full component framework, or no split at all (1197-line file grows worse with new features).
-
----
-
-## 3. TARGET STRUCTURE (file-by-file mapping)
-
-```
-Color-Picker/ (repo root)
-├── package.json                  # name: chromalens, version: 2.0.0, type: module
-├── wxt.config.ts                 # manifest config, manifestVersion: 3, zip config
-├── tsconfig.json                 # extends .wxt/tsconfig.json
-├── vitest.config.ts              # WxtVitest plugin
-├── .gitignore                    # + .output/, .wxt/
-├── README.md                     # dev/build/publish commands (Firefox sources-zip requirement)
-├── public/
-│   └── icons/                    # icon16.png, icon48.png, icon128.png (from icons/, drop .bmp)
-├── entrypoints/
-│   ├── background.ts             # ← background.js (listeners inside defineBackground main())
-│   ├── popup/
-│   │   ├── index.html            # ← popup.html (script src → ./index.ts)
-│   │   ├── index.ts              # ← popup.js (wiring + views)
-│   │   └── style.css             # ← popup.css
-│   ├── audit.content.ts          # ← audit.js (registration: 'runtime', imports utils/)
-│   └── select-area.content.ts    # ← select-area.js (registration: 'runtime')
-├── utils/
-│   ├── color.ts                  # ← utils.js (hex/rgb/hsl/lab/deltaE/contrast/harmonies/kMeans/VP-tree)
-│   ├── color-data.ts             # ← color_data.js (typed COLOR_NAMES)
-│   ├── image.ts                  # ← from popup.js: extractColorsFromImage, cropImageToBounds
-│   ├── storage.ts                # ← NEW typed wrapper (localStorage, chromaLens_* keys preserved)
-│   └── types.ts                  # ← NEW: HexColor, PaletteItem, Violation, MessageMap
-├── components/
-│   └── icons.ts                  # ← SVG string factories from popup.js
-├── tests/
-│   ├── color.test.ts             # ← test_utils.mjs + test_node.js (46 assertions ported)
-│   ├── image.test.ts             # NEW: crop/extract pipeline (jsdom-free, canvas mocked)
-│   └── storage.test.ts           # NEW: wrapper round-trip
-└── scripts/
-    └── generate-icons.mjs        # ← generate_icons.js (dev-only, not in build)
-```
-
-**Deleted:** storage.js (dead), audit.css + palette.css (empty stubs), manifest.json + manifest.firefox.json + build.sh (superseded by wxt.config.ts), dist/ (already gitignored), test_node.js/test_utils.mjs (ported), icons/*.bmp.
-
-## 4. MANIFEST MAPPING (parity check — permissions must be identical)
-
-| Current manifest | wxt.config.ts |
-|---|---|
-| manifest_version 3 | `manifestVersion: 3` (forced, all targets) |
-| permissions: activeTab, scripting, storage, contextMenus, tabs | `manifest.permissions` — same 5, unchanged |
-| background.service_worker / .scripts | generated by entrypoints/background.ts (worker for Chromium, event page for Firefox) |
-| web_accessible_resources (select-area) | **dropped** — scripting.executeScript needs no WAR |
-| action.default_popup | generated by entrypoints/popup/ |
-| action.default_icon + icons | `manifest.icons` explicit: `/icons/icon16.png` etc. |
-| commands._execute_action (Ctrl+Shift+Y / Cmd+Shift+Y) | `manifest.commands` — identical |
-| browser_specific_settings.gecko.id (Firefox) | `manifest.browser_specific_settings.gecko` — only when browser is firefox (conditional config) |
-
-## 5. API MIGRATION MAP (chrome.* → browser.*)
-
-| Current call | WXT form |
-|---|---|
-| `chrome.runtime.onInstalled.addListener` | inside `defineBackground(main)` → `browser.runtime.onInstalled.addListener` |
-| `chrome.contextMenus.create/onClicked` | same, `browser.contextMenus.*` |
-| `chrome.runtime.onMessage` (background) | same, `browser.runtime.onMessage` |
-| `chrome.scripting.insertCSS/executeScript(...).then` | `await browser.scripting.insertCSS/executeScript` (promise, works both browsers — undoes the callback rewrite from main) |
-| `chrome.tabs.captureVisibleTab` | `browser.tabs.captureVisibleTab` |
-| `chrome.storage.local.get/set/remove` (pendingCapture, pendingImageExtract) | `browser.storage.local.*` (promise style) |
-| `chrome.action.setBadgeText/BackgroundColor` | `browser.action.*` |
-| `chrome.tabs.query/sendMessage` (popup) | `browser.tabs.query/sendMessage` (promise — undoes callback rewrite) |
-| `chrome.runtime.sendMessage` (content scripts) | `browser.runtime.sendMessage` |
-| `localStorage` (favorites/recent/theme) | unchanged, behind `utils/storage.ts` |
-
-## 6. BUG FIXES DURING MIGRATION (verified bugs, not refactors)
-
-1. **Duplicate pendingCapture processing** (popup.js:224 + :454) → single handler; consume storage + clear badge exactly once.
-2. **audit.js logic duplication** → import `utils/color.ts` (kMeans etc. — one implementation).
-3. **Dead storage.js** → delete, replace with typed wrapper.
-4. **Empty CSS stubs** → delete.
-5. **EyeDropper fallback** stays (Chromium-only API; Firefox shows "Not Supported" — already handled).
-
-## 7. TESTING STRATEGY
-
-- vitest + `WxtVitest` plugin (auto-imports, `@/*` alias, fake-browser for any `browser.*` tests)
-- Port all 46 assertions: color conversions, harmonies, k-means, Lab roundtrip, deltaE, color names
-- New: `utils/image.ts` crop/extract tests; `utils/storage.ts` round-trip tests
-- Verification gate per phase: `pnpm test` green + `wxt build` for chrome AND firefox + manifest parity diff
-
-## 8. BUILD / PUBLISH MATRIX
-
-| Command | Output |
-|---|---|
-| `pnpm dev` / `pnpm dev:firefox` | HMR dev server + auto-loaded extension |
-| `pnpm build` | `.output/chrome-mv3/` |
-| `pnpm build:firefox` | `.output/firefox-mv3/` (event-page background) |
-| `pnpm zip` / `pnpm zip:firefox` | store ZIPs + Firefox sources ZIP (AMO requirement) |
-| `pnpm submit` (after `wxt submit init` + `.env.submit`) | Chrome Web Store + Edge + AMO automated |
-| `pnpm build:safari` (stretch) | `.output/safari-mv3/` → `xcrun safari-web-extension-packager` |
-
-## 9. IMPLEMENTATION PHASES (each ends with a verification gate)
-
-**Phase 0 — Scaffold (0.5h)**
-`pnpm dlx wxt@latest init . --template vanilla` into the repo root; verify `wxt prepare` generates `.wxt/`; commit scaffold.
-
-**Phase 1 — Config + entrypoint shells (1h)**
-wxt.config.ts (manifest config, MV3 forced, icons, commands, gecko id conditional); entrypoints/background.ts + popup/index.html + index.ts + style.css stubs; utils/ + components/ + tests/ dirs. Gate: `wxt build -b chrome` + `-b firefox` produce manifests with identical permissions to current; diff against current manifest.json.
-
-**Phase 2 — Logic migration (2-3h)**
-Port utils.js → utils/color.ts + color-data.ts (typed); port tests to vitest; green. Port background.js → defineBackground; port select-area.js + audit.js → registration:'runtime' content scripts importing utils; port popup.js → index.ts split (wiring, image.ts, icons.ts, storage.ts). Gate: `pnpm test` green; both builds succeed; `web-ext lint --source-dir .output/firefox-mv3` passes.
-
-**Phase 3 — Bug fixes + behavior verification (1-2h)**
-Fix duplicate pendingCapture handler; delete dead code (storage.js, empty css, bmp icons); verify all 5 views + 3 capture modes manually in Chrome and Firefox (load unpacked / temporary add-on), screenshot each view. Gate: screenshot proof for every view, both browsers.
-
-**Phase 4 — Publish readiness (1h)**
-README (dev/build/submit commands — required by AMO source review); `wxt zip` + `wxt zip:firefox`; verify sources ZIP rebuilds (`pnpm i && pnpm zip:firefox` inside extracted zip); `wxt submit init` dry-run (optional until store accounts exist). Gate: zips build; sources zip rebuilds identically.
-
-**Phase 5 — Merge path (0.5h)**
-Bump version 1.1.0 → 2.0.0; PR `wxt-migration` → `main`; keep `main`'s vanilla commits as history (fallback path documented in README).
-
-## 10. RISKS & MITIGATIONS
+## 13. RISKS (v1 + delegation additions)
 
 | Risk | Mitigation |
 |---|---|
-| Vite HTML processing breaks popup.html (595 lines, inline SVGs) | It's plain HTML+CSS; WXT/Vite handle it; Phase 1 shells the file before Phase 2 moves logic |
-| `browser.*` promise style changes timing vs callbacks | Only 2 sites used promises before; all others were callbacks — semantics identical, verified in Phase 3 manual pass |
-| localStorage keys must survive migration | `chromaLens_*` keys preserved verbatim in utils/storage.ts; test asserts key names |
-| Firefox MV3 event-page differences (context menu persistence) | WXT generates the event page; contextMenus already event-page-safe (top-level listener registration inside main()) |
-| WXT version drift during long migration | Pin wxt + vitest versions in package.json; upgrade separately |
-| AMO sources-zip rebuild mismatch | Phase 4 gate: rebuild from extracted zip, compare output |
+| Claude Code drifts from spec or hits turn limits | CL specs are explicit (mapping tables); inspect partial diffs; fix myself; never trust self-reports |
+| Claude Code breaks popup.html (595 lines) during port | CL6 moves logic in small steps; L5 Playwright + screenshots per view; restore from git if broken (never patch-fix agent-broken HTML — revert and redo) |
+| Vite HTML processing differences | CL1 shells the HTML before CL6 fills it; early build catches issues |
+| `browser.*` promise timing vs callbacks | Semantics identical; L5 UI pass verifies flows (capture, scan, extract) |
+| localStorage key drift | CL3 tests assert exact `chromaLens_*` names |
+| CI flakiness (Playwright extension mode) | Pin browser versions; Firefox E2E marked best-effort with web-ext + manual fallback |
+| WXT version drift | Pin wxt + vitest in package.json |
+| AMO sources-zip mismatch | CL9 rebuild-from-zip gate |
 
-## 11. OPEN QUESTIONS (need user decision before Phase 2)
-
-1. **Version bump to 2.0.0?** (recommended: yes — major architecture change; Chrome/AMO listings show it as a new release)
-2. **Repo rename** `azharudh33n/Color-Picker` → `chromalens`? (cosmetic; gh repo rename + local remote update — 2 minutes, recommend yes if this is the product name)
-3. **Safari**: plan the packaging phase now (needs Apple Developer account) or leave as documented stretch?
-4. **Credits**: about modal lists Muhammed Azharudheen K J + Emmanul S Ayakara — keep as-is (assuming yes, no change planned)
+## 14. OPEN QUESTIONS (need your decision before CL1)
+1. **Version bump 1.1.0 → 2.0.0?** (recommended: yes)
+2. **Repo rename** `azharudh33n/Color-Picker` → `chromalens`? (recommended: yes; 2 min, gh repo rename)
+3. **Safari**: packaged this cycle (needs Apple dev account) or documented stretch? (recommended: stretch)
+4. **Credits** in about modal unchanged? (assuming yes)
