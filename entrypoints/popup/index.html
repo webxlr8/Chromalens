@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChromaLens - Color Picker & Accessibility Toolkit</title>
+    <link rel="stylesheet" href="./style.css">
+    <style>
+        @font-face {
+            font-family: 'Inter';
+            font-style: normal;
+            font-weight: 400 700;
+            font-display: swap;
+            src: local('Inter');
+        }
+
+        @font-face {
+            font-family: 'JetBrains Mono';
+            font-style: normal;
+            font-weight: 500;
+            font-display: swap;
+            src: local('JetBrains Mono');
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                    class="logo-icon">
+                    <path
+                        d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                </svg>
+                <h1>ChromaLens</h1>
+            </div>
+            <div class="header-actions">
+                <button id="settings-btn" class="icon-btn" title="Settings" aria-label="Settings">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path
+                            d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                        <circle cx="12" cy="12" r="3" />
+                    </svg>
+                </button>
+                <button id="about-btn" class="icon-btn" title="About" aria-label="About">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 16v-4" />
+                        <path d="M12 8h.01" />
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <nav class="tabs" role="tablist" aria-label="Main navigation">
+            <button class="tab-btn active" data-tab="picker" title="Picker" role="tab" aria-selected="true"
+                tabindex="0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="tab-icon">
+                    <path d="m2 22 1-1h3l9-9" />
+                    <path d="M3 21v-3l9-9" />
+                    <path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l-3-3Z" />
+                </svg>
+                <span class="tab-label">Picker</span>
+            </button>
+            <button class="tab-btn" data-tab="palette" title="Harmony" role="tab" aria-selected="false" tabindex="0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="tab-icon">
+                    <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+                    <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+                    <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+                    <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+                    <path
+                        d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.707-.484 2.179-1.208.402-.614.398-1.42.01-2.047a2.438 2.438 0 0 1 0-2.49c.387-.626.384-1.432-.019-2.046A2.438 2.438 0 0 1 14.17 11H21c0-4.97-4.03-9-9-9Z" />
+                </svg>
+                <span class="tab-label">Harmony</span>
+            </button>
+            <button class="tab-btn" data-tab="extract" title="Capture" role="tab" aria-selected="false" tabindex="0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="tab-icon">
+                    <path
+                        d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                    <circle cx="12" cy="13" r="3" />
+                </svg>
+                <span class="tab-label">Capture</span>
+            </button>
+            <button class="tab-btn" data-tab="favorites" title="Saved" role="tab" aria-selected="false" tabindex="0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="tab-icon">
+                    <path
+                        d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                </svg>
+                <span class="tab-label">Saved</span>
+                <span id="favorites-count" class="tab-badge hidden">0</span>
+            </button>
+            <button class="tab-btn" data-tab="audit" title="Audit" role="tab" aria-selected="false" tabindex="0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="tab-icon">
+                    <path
+                        d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
+                    <path d="m9 12 2 2 4-4" />
+                </svg>
+                <span class="tab-label">Audit</span>
+            </button>
+        </nav>
+
+        <div id="view-picker" class="view active">
+            <main>
+                <div class="preview-container">
+                    <div id="color-preview" class="color-preview">
+                        <button id="add-favorite-btn" class="preview-favorite-btn" title="Save to Favorites"
+                            aria-label="Save to Favorites">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="heart-icon">
+                                <path
+                                    d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                            </svg>
+                        </button>
+                    </div>
+                    <button id="pick-btn" class="pick-btn" aria-label="Pick a color from screen">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m2 22 1-1h3l9-9" />
+                            <path d="M3 21v-3l9-9" />
+                            <path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l-3-3Z" />
+                        </svg>
+                        <span>Pick Color</span>
+                    </button>
+                </div>
+
+                <div class="values-container">
+                    <div class="value-row color-name-row">
+                        <span class="label">NAME</span>
+                        <span class="value" id="color-name">White</span>
+                    </div>
+                    <div class="value-row">
+                        <span class="label">INPUT</span>
+                        <input id="hex-input" class="hex-input" placeholder="#RRGGBB" maxlength="7"
+                            spellcheck="false" autocomplete="off" aria-label="Enter a hex color">
+                    </div>
+                    <div class="value-row" data-format="hex">
+                        <span class="label">HEX</span>
+                        <span class="value" id="hex-value">#FFFFFF</span>
+                        <button class="copy-btn" title="Copy HEX" aria-label="Copy HEX value">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="value-row" data-format="rgb">
+                        <span class="label">RGB</span>
+                        <span class="value" id="rgb-value">rgb(255, 255, 255)</span>
+                        <button class="copy-btn" title="Copy RGB" aria-label="Copy RGB value">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="value-row" data-format="hsl">
+                        <span class="label">HSL</span>
+                        <span class="value" id="hsl-value">hsl(0, 0%, 100%)</span>
+                        <button class="copy-btn" title="Copy HSL" aria-label="Copy HSL value">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="recent-container">
+                    <div class="section-header">
+                        <h2>Recent Colors</h2>
+                    </div>
+                    <div id="recent-colors" class="recent-grid">
+                        <!-- Recent colors will be populated here -->
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <div id="view-palette" class="view hidden">
+            <div class="palette-context">
+                <div class="base-color-preview">
+                    <div id="harmony-base-swatch" class="mini-swatch"></div>
+                    <span id="harmony-base-hex">#FFFFFF</span>
+                </div>
+                <select id="harmony-select" class="dropdown">
+                    <option value="complementary">Complementary</option>
+                    <option value="analogous">Analogous</option>
+                    <option value="triadic">Triadic</option>
+                    <option value="split-complementary">Split-Complementary</option>
+                    <option value="tetradic">Tetradic</option>
+                    <option value="square">Square</option>
+                    <option value="monochromatic" selected>Monochromatic</option>
+                </select>
+            </div>
+            <div id="palette-grid" class="palette-grid">
+                <!-- Palette colors go here -->
+            </div>
+            <div class="export-actions">
+                <button id="export-css" class="action-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                    </svg>
+                    Copy CSS
+                </button>
+                <button id="export-json" class="action-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                    </svg>
+                    Copy JSON
+                </button>
+            </div>
+        </div>
+
+        <div id="view-extract" class="view hidden">
+            <div class="capture-modes">
+                <button class="capture-mode-btn active" data-mode="site" title="Extract CSS colors from page">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="2" x2="22" y1="12" y2="12" />
+                        <path
+                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </svg>
+                    <span>Site</span>
+                </button>
+                <button class="capture-mode-btn" data-mode="screen" title="Select area from screen">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path
+                            d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                        <circle cx="12" cy="13" r="3" />
+                    </svg>
+                    <span>Screen</span>
+                </button>
+                <button class="capture-mode-btn" data-mode="image" title="Right-click any image">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                        <circle cx="9" cy="9" r="2" />
+                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                    </svg>
+                    <span>Image</span>
+                </button>
+            </div>
+
+            <div id="capture-mode-site" class="capture-content active">
+                <button id="extract-btn" class="capture-cta">
+                    <div class="cta-icon-wrapper">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8" />
+                            <path d="m21 21-4.3-4.3" />
+                        </svg>
+                    </div>
+                    <span class="cta-text">Analyze Website</span>
+                </button>
+                <p class="capture-hint">Extracts all colors from CSS, backgrounds, and text</p>
+            </div>
+
+            <div id="capture-mode-screen" class="capture-content hidden">
+                <button id="capture-btn" class="capture-cta">
+                    <div class="cta-icon-wrapper">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                            <circle cx="12" cy="13" r="3" />
+                        </svg>
+                    </div>
+                    <span class="cta-text">Select Area</span>
+                </button>
+                <p class="capture-hint">Draw a rectangle on the page to extract colors</p>
+            </div>
+
+            <div id="capture-mode-image" class="capture-content hidden">
+                <div class="capture-action-card">
+                    <label for="image-file-input" class="upload-label">
+                        <div class="action-icon-wrapper">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="17 8 12 3 7 8" />
+                                <line x1="12" x2="12" y1="3" y2="15" />
+                            </svg>
+                        </div>
+                        <span>Upload Image</span>
+                    </label>
+                    <input type="file" id="image-file-input" accept="image/*" hidden>
+                </div>
+                <p class="capture-helper">Or right-click any image on page → "Extract colors"</p>
+            </div>
+
+            <div id="capture-results" class="capture-results hidden">
+                <div class="results-header">
+                    <span id="results-title">Captured Colors</span>
+                    <button id="clear-results" class="clear-btn" title="Clear results">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6 6 18" />
+                            <path d="m6 6 12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div id="extract-grid" class="extract-grid">
+                    <!-- Extracted colors go here -->
+                </div>
+                <div id="extract-actions" class="export-actions">
+                    <button id="save-palette-btn" class="action-btn" title="Save as named palette">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                        Save Palette
+                    </button>
+                    <button id="extract-css" class="action-btn">Copy CSS</button>
+                    <button id="extract-json" class="action-btn">Copy JSON</button>
+                </div>
+                <div id="palette-save-row" class="palette-save-row hidden">
+                    <input id="palette-name-input" class="hex-input" placeholder="Palette name" maxlength="40"
+                        spellcheck="false" autocomplete="off" aria-label="Palette name">
+                    <button id="palette-save-confirm" class="action-btn primary">Save</button>
+                    <button id="palette-save-cancel" class="action-btn">Cancel</button>
+                </div>
+            </div>
+
+            <div id="image-status" class="image-status hidden">
+                <div class="loading-spinner mini"></div>
+                <span>Extracting colors...</span>
+            </div>
+        </div>
+
+        <div id="view-audit" class="view hidden">
+            <div class="audit-controls">
+                <button id="scan-btn" class="pick-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.3-4.3" />
+                    </svg>
+                    <span>Scan Page</span>
+                </button>
+                <div id="audit-summary" class="audit-summary hidden">
+                    <span id="violation-count">0</span> Violations Found
+                </div>
+            </div>
+            <div id="audit-results" class="audit-results">
+                <div class="empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="empty-icon">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 16v-4" />
+                        <path d="M12 8h.01" />
+                    </svg>
+                    <p>Click 'Scan Page' to check for contrast issues.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-favorites" class="view hidden">
+            <div class="favorites-header">
+                <h3>Saved Colors</h3>
+                <div class="favorites-actions">
+                    <button id="export-favorites-btn" class="icon-btn" title="Export colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                            <polyline points="16 6 12 2 8 6" />
+                            <line x1="12" x2="12" y1="2" y2="15" />
+                        </svg>
+                    </button>
+                    <button id="clear-favorites-btn" class="icon-btn" title="Clear all">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 6h18" />
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                            <line x1="10" x2="10" y1="11" y2="17" />
+                            <line x1="14" x2="14" y1="11" y2="17" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div id="favorites-grid" class="favorites-grid">
+                <!-- Favorite colors go here -->
+            </div>
+            <div id="favorites-empty" class="empty-state">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="empty-icon">
+                    <path
+                        d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                </svg>
+                <p>No saved colors yet</p>
+                <small>Click the heart icon on any color to save it</small>
+            </div>
+            <div id="palettes-section">
+                <div class="favorites-header">
+                    <h3>Palettes</h3>
+                </div>
+                <div id="palettes-grid" class="palettes-grid">
+                    <!-- Saved palettes go here -->
+                </div>
+                <div id="palettes-empty" class="empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="empty-icon">
+                        <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+                        <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+                        <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+                        <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+                        <path
+                            d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.707-.484 2.179-1.208.402-.614.398-1.42.01-2.047a2.438 2.438 0 0 1 0-2.49c.387-.626.384-1.432-.019-2.046A2.438 2.438 0 0 1 14.17 11H21c0-4.97-4.03-9-9-9Z" />
+                    </svg>
+                    <p>No saved palettes yet</p>
+                    <small>Capture a site, screen, or image and hit "Save Palette"</small>
+                </div>
+            </div>
+        </div>
+
+        <div id="export-modal" class="modal hidden">
+            <div class="modal-content export-modal-content">
+                <div class="modal-header">
+                    <h2>Export Colors</h2>
+                    <button class="modal-close" id="export-modal-close">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6 6 18" />
+                            <path d="m6 6 12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="export-preview">
+                        <div id="export-colors-preview" class="export-colors-row">
+                            <!-- Colors preview -->
+                        </div>
+                    </div>
+                    <div class="export-formats">
+                        <button class="export-format-btn" data-format="css-vars">
+                            <span class="format-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="m2 22 1-1h3l9-9" />
+                                    <path d="M3 21v-3l9-9" />
+                                    <path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l-3-3Z" />
+                                </svg>
+                            </span>
+                            <div class="format-info">
+                                <span class="format-name">CSS Variables</span>
+                                <span class="format-desc">:root { --color-1: ... }</span>
+                            </div>
+                        </button>
+                        <button class="export-format-btn" data-format="tailwind">
+                            <span class="format-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M2 22 17.5 15" />
+                                    <path d="M2 15 17.5 8" />
+                                    <path d="M2 8 17.5 1" />
+                                </svg>
+                            </span>
+                            <div class="format-info">
+                                <span class="format-name">Tailwind Config</span>
+                                <span class="format-desc">colors: { primary: ... }</span>
+                            </div>
+                        </button>
+                        <button class="export-format-btn" data-format="scss">
+                            <span class="format-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path
+                                        d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                                </svg>
+                            </span>
+                            <div class="format-info">
+                                <span class="format-name">SCSS Variables</span>
+                                <span class="format-desc">$color-1: #hex;</span>
+                            </div>
+                        </button>
+                        <button class="export-format-btn" data-format="json">
+                            <span class="format-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                                    <path
+                                        d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                                </svg>
+                            </span>
+                            <div class="format-info">
+                                <span class="format-name">JSON Array</span>
+                                <span class="format-desc">["#hex1", "#hex2", ...]</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="about-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>ChromaLens</h2>
+                    <button class="modal-close" id="modal-close">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6 6 18" />
+                            <path d="m6 6 12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p class="version">Version 2.0.0 Beta</p>
+                    <p class="tagline">Color Picker & Accessibility Toolkit</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="settings-modal" class="modal hidden">
+            <div class="modal-content settings-modal-content">
+                <div class="modal-header">
+                    <h3>Settings</h3>
+                    <button id="settings-close" class="modal-close" aria-label="Close">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6 6 18" />
+                            <path d="m6 6 12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="settings-section">
+                        <label class="settings-label">Theme</label>
+                        <div class="theme-toggle" role="radiogroup" aria-label="Theme selection">
+                            <button class="theme-option" data-theme="auto" aria-pressed="true">
+                                <span class="theme-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <path d="M12 2v20" />
+                                    </svg>
+                                </span>
+                                <span>Auto</span>
+                            </button>
+                            <button class="theme-option" data-theme="light" aria-pressed="false">
+                                <span class="theme-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="4" />
+                                        <path d="M12 2v2" />
+                                        <path d="M12 20v2" />
+                                        <path d="m4.93 4.93 1.41 1.41" />
+                                        <path d="m17.66 17.66 1.41 1.41" />
+                                        <path d="M2 12h2" />
+                                        <path d="M20 12h2" />
+                                        <path d="m6.34 17.66-1.41 1.41" />
+                                        <path d="m19.07 4.93-1.41 1.41" />
+                                    </svg>
+                                </span>
+                                <span>Light</span>
+                            </button>
+                            <button class="theme-option" data-theme="dark" aria-pressed="false">
+                                <span class="theme-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                                    </svg>
+                                </span>
+                                <span>Dark</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="toast" class="toast hidden">Copied to clipboard!</div>
+    </div>
+    <script type="module" src="./main.ts"></script>
+</body>
+
+</html>
