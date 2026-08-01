@@ -9,6 +9,12 @@ import {
 import { cropImageToBounds, extractColorsFromImage } from '../../utils/image';
 import { getData, setData } from '../../utils/storage';
 import {
+  deletePalette,
+  listPalettes,
+  savePalette,
+  type SavedPalette,
+} from '../../utils/palettes';
+import {
   getCheckSVG,
   getClipboardSVG,
   getGlobeSVG,
@@ -108,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const recentGrid = document.getElementById('recent-colors')!;
   const toast = document.getElementById('toast')!;
   const copyBtns = document.querySelectorAll('.copy-btn');
+  const hexInput = document.getElementById('hex-input') as HTMLInputElement;
 
   // Audit Elements
   const scanBtn = document.getElementById('scan-btn')!;
@@ -162,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
           const colors = await extractColorsFromImage((response as { imageUrl: string }).imageUrl);
           imageStatus.classList.add('hidden');
-          renderExtractedPalette(colors, `${getImageSVG()} <span>Image Extract</span>`);
+          renderExtractedPalette(colors, `${getImageSVG()} <span>Image Extract</span>`, 'image');
         } catch {
           imageStatus.classList.add('hidden');
           extractGrid.innerHTML = '<div class="extract-empty">Could not load image. Try a same-origin image.</div>';
@@ -195,12 +202,26 @@ document.addEventListener('DOMContentLoaded', () => {
         // bounds already scaled by devicePixelRatio
         const croppedUrl = await cropImageToBounds(screenshot, bounds, 1);
         const colors = await extractColorsFromImage(croppedUrl);
-        renderExtractedPalette(colors, `${getScreenSVG()} <span>Screen Capture</span>`);
+        renderExtractedPalette(colors, `${getScreenSVG()} <span>Screen Capture</span>`, 'screen');
       } catch {
         extractGrid.innerHTML = '<div class="extract-empty">Failed to process captured area.</div>';
       }
     } catch {
       // No pending capture
+    }
+  };
+
+  // Check for pending pick result from the cross-browser picker
+  const checkPendingPickResult = async () => {
+    try {
+      const result = await browser.storage.local.get(['pendingPickResult']);
+      const pending = result.pendingPickResult as { color?: string } | undefined;
+      if (!pending?.color) return;
+      await browser.storage.local.remove('pendingPickResult');
+      await browser.action.setBadgeText({ text: '' });
+      applyPickedColor(pending.color);
+    } catch {
+      // Ignore
     }
   };
 
@@ -214,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
       extractColorsFromImage((request as { imageUrl: string }).imageUrl)
         .then((colors) => {
           imageStatus.classList.add('hidden');
-          renderExtractedPalette(colors, `${getImageSVG()} <span>Image Extract</span>`);
+          renderExtractedPalette(colors, `${getImageSVG()} <span>Image Extract</span>`, 'image');
         })
         .catch(() => {
           imageStatus.classList.add('hidden');
@@ -241,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         extractColorsFromImage(imageUrl)
           .then((colors) => {
-            renderExtractedPalette(colors, '📁 ' + file.name);
+            renderExtractedPalette(colors, '📁 ' + file.name, 'image');
           })
           .catch(() => {
             extractGrid.innerHTML = '<div class="extract-empty">Could not process image.</div>';
@@ -251,88 +272,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Reset input so same file can be selected again
       input.value = '';
-    });
-  }
-
-  // Crop Modal Elements (only initialize if elements exist)
-  const cropModal = document.getElementById('crop-modal');
-  const cropCanvas = document.getElementById('crop-canvas') as HTMLCanvasElement | null;
-  const cropSelection = document.getElementById('crop-selection') as HTMLElement | null;
-  const cropCancel = document.getElementById('crop-cancel');
-  const cropConfirm = document.getElementById('crop-confirm');
-
-  if (cropCanvas && cropModal && cropSelection && cropCancel && cropConfirm) {
-    const cropContainer = cropCanvas.parentElement!;
-    let capturedScreenshot: string | null = null;
-    let cropBounds: { x: number; y: number; width: number; height: number } | null = null;
-    let isDrawing = false;
-    let startX = 0;
-    let startY = 0;
-    const canvasScale = 1;
-
-    // Crop selection handlers
-    cropContainer.addEventListener('mousedown', (e) => {
-      const rect = cropCanvas.getBoundingClientRect();
-      startX = e.clientX - rect.left;
-      startY = e.clientY - rect.top;
-      isDrawing = true;
-      cropSelection.style.left = startX + 'px';
-      cropSelection.style.top = startY + 'px';
-      cropSelection.style.width = '0';
-      cropSelection.style.height = '0';
-      cropSelection.style.display = 'block';
-    });
-
-    cropContainer.addEventListener('mousemove', (e) => {
-      if (!isDrawing) return;
-      const rect = cropCanvas.getBoundingClientRect();
-      const currentX = e.clientX - rect.left;
-      const currentY = e.clientY - rect.top;
-
-      const left = Math.max(0, Math.min(startX, currentX));
-      const top = Math.max(0, Math.min(startY, currentY));
-      const width = Math.min(Math.abs(currentX - startX), rect.width - left);
-      const height = Math.min(Math.abs(currentY - startY), rect.height - top);
-
-      cropSelection.style.left = left + 'px';
-      cropSelection.style.top = top + 'px';
-      cropSelection.style.width = width + 'px';
-      cropSelection.style.height = height + 'px';
-
-      cropBounds = { x: left, y: top, width, height };
-    });
-
-    cropContainer.addEventListener('mouseup', () => {
-      isDrawing = false;
-    });
-
-    // Cancel crop
-    cropCancel.addEventListener('click', () => {
-      cropModal.classList.add('hidden');
-      cropSelection.style.display = 'none';
-      capturedScreenshot = null;
-      cropBounds = null;
-    });
-
-    // Confirm crop and extract
-    cropConfirm.addEventListener('click', () => {
-      if (!cropBounds || cropBounds.width < 10 || cropBounds.height < 10) {
-        extractGrid.innerHTML = '<div class="extract-empty">Please select a larger area.</div>';
-        return;
-      }
-
-      cropModal.classList.add('hidden');
-      cropSelection.style.display = 'none';
-      extractGrid.innerHTML = '<div class="extract-empty">Extracting colors...</div>';
-
-      cropImageToBounds(capturedScreenshot!, cropBounds, canvasScale)
-        .then((croppedImage) => extractColorsFromImage(croppedImage))
-        .then((colors) => {
-          renderExtractedPalette(colors, `${getScreenSVG()} <span>Crop Selection</span>`);
-        })
-        .catch(() => {
-          extractGrid.innerHTML = '<div class="extract-empty">Failed to extract colors.</div>';
-        });
     });
   }
 
@@ -402,6 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   renderRecentColors();
   renderFavorites();
+  renderPalettes();
   updateDisplay(getCurrentColor());
   updateFavoriteButton(getCurrentColor());
 
@@ -588,6 +528,102 @@ document.addEventListener('DOMContentLoaded', () => {
     exportModal.classList.remove('hidden');
   });
 
+  // ---- Named palettes ----
+  let lastExtractionSource: SavedPalette['source'] = 'site';
+
+  const savePaletteBtn = document.getElementById('save-palette-btn')!;
+  const paletteSaveRow = document.getElementById('palette-save-row')!;
+  const paletteNameInput = document.getElementById('palette-name-input') as HTMLInputElement;
+  const paletteSaveConfirm = document.getElementById('palette-save-confirm')!;
+  const paletteSaveCancel = document.getElementById('palette-save-cancel')!;
+
+  savePaletteBtn.addEventListener('click', () => {
+    if (extractedPalette.length === 0) {
+      showToast('Extract colors first');
+      return;
+    }
+    paletteNameInput.value = '';
+    paletteSaveRow.classList.remove('hidden');
+    paletteNameInput.focus();
+  });
+
+  paletteSaveCancel.addEventListener('click', () => paletteSaveRow.classList.add('hidden'));
+
+  paletteSaveConfirm.addEventListener('click', () => {
+    const palette = savePalette(paletteNameInput.value, extractedPalette, lastExtractionSource);
+    paletteSaveRow.classList.add('hidden');
+    if (!palette) {
+      showToast('Enter a name first');
+      return;
+    }
+    showToast('Palette saved');
+    renderPalettes();
+  });
+
+  function renderPalettes() {
+    const palettes = listPalettes();
+    const grid = document.getElementById('palettes-grid')!;
+    const empty = document.getElementById('palettes-empty')!;
+    grid.innerHTML = '';
+    if (palettes.length === 0) {
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+
+    palettes.forEach((p) => {
+      const card = document.createElement('div');
+      card.className = 'palette-card';
+
+      const swatches = document.createElement('div');
+      swatches.className = 'palette-swatches';
+      p.colors.slice(0, 8).forEach((c) => {
+        const s = document.createElement('span');
+        s.style.backgroundColor = c;
+        swatches.appendChild(s);
+      });
+
+      const info = document.createElement('div');
+      info.className = 'palette-info';
+      const name = document.createElement('div');
+      name.className = 'palette-name';
+      name.textContent = p.name;
+      const meta = document.createElement('div');
+      meta.className = 'palette-meta';
+      meta.textContent = `${p.colors.length} colors`;
+      info.appendChild(name);
+      info.appendChild(meta);
+
+      const del = document.createElement('button');
+      del.className = 'palette-delete';
+      del.innerHTML = getTrashSVG();
+      del.title = 'Delete palette';
+      del.onclick = (e) => {
+        e.stopPropagation();
+        showConfirmModal(`Delete "${p.name}"?`, () => {
+          deletePalette(p.id);
+          renderPalettes();
+          showToast('Palette deleted');
+        });
+      };
+
+      card.appendChild(swatches);
+      card.appendChild(info);
+      card.appendChild(del);
+
+      card.onclick = () => {
+        if (p.colors.length === 0) return;
+        const first = p.colors[0]!;
+        setCurrentColor(first);
+        updateDisplay(first);
+        updateFavoriteButton(first);
+        p.colors.forEach((c) => addToHistory(c));
+        showToast(`Loaded "${p.name}"`);
+      };
+      grid.appendChild(card);
+    });
+  }
+
   // Tab Switching
   tabs.forEach((tab) => {
     tab.addEventListener('click', () => {
@@ -603,6 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderPalette(getCurrentColor());
           } else if (target === 'favorites') {
             renderFavorites();
+            renderPalettes();
           }
         } else {
           view.classList.add('hidden');
@@ -612,31 +649,58 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Check if EyeDropper is supported
-  if (!window.EyeDropper) {
-    pickBtn.innerText = 'Not Supported';
-    pickBtn.disabled = true;
+  // Manual hex input
+  hexInput.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const raw = hexInput.value.trim().replace(/^#/, '');
+    if (!/^[0-9a-fA-F]{6}$/.test(raw)) {
+      hexInput.value = getCurrentColor().toUpperCase();
+      showToast('Invalid hex — use #RRGGBB');
+      return;
+    }
+    const hex = '#' + raw.toLowerCase();
+    hexInput.value = hex.toUpperCase();
+    setCurrentColor(hex);
+    updateDisplay(hex);
+    updateFavoriteButton(hex);
+    addToHistory(hex);
+
+    if (!document.getElementById('view-palette')!.classList.contains('hidden')) {
+      renderPalette(hex);
+    }
+  });
+
+  // Apply a picked color to the app state
+  function applyPickedColor(color: string) {
+    setCurrentColor(color);
+    updateDisplay(color);
+    updateFavoriteButton(color);
+    addToHistory(color);
+
+    if (!document.getElementById('view-palette')!.classList.contains('hidden')) {
+      renderPalette(color);
+    }
   }
 
+  // Check if EyeDropper is supported; fall back to the screenshot picker otherwise
   pickBtn.addEventListener('click', async () => {
-    if (!window.EyeDropper) return;
-
-    const eyeDropper = new window.EyeDropper();
-
-    try {
-      const result = await eyeDropper.open();
-      const color = result.sRGBHex;
-
-      setCurrentColor(color);
-      updateDisplay(color);
-      updateFavoriteButton(color);
-      addToHistory(color);
-
-      if (!document.getElementById('view-palette')!.classList.contains('hidden')) {
-        renderPalette(color);
+    if (window.EyeDropper) {
+      const eyeDropper = new window.EyeDropper();
+      try {
+        const result = await eyeDropper.open();
+        applyPickedColor(result.sRGBHex);
+      } catch {
+        // User canceled the color picker
       }
-    } catch {
-      // User canceled the color picker
+      return;
+    }
+
+    // Fallback: screenshot-based picker (Firefox, Safari)
+    const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    const tab = tabs[0];
+    if (tab && tab.id !== undefined) {
+      await browser.runtime.sendMessage({ action: 'start_pick', tabId: tab.id });
+      setTimeout(() => window.close(), 50);
     }
   });
 
@@ -803,7 +867,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderExtractedPalette(
     colors: Array<{ color: string; percentage: number }>,
     title?: string,
+    source: SavedPalette['source'] = 'site',
   ) {
+    lastExtractionSource = source;
     // Handle both new format {color, percentage} and legacy string format
     const normalizedColors = colors.map((c) =>
       typeof c === 'string' ? { color: c as string, percentage: 0 } : c,
@@ -1015,6 +1081,7 @@ document.addEventListener('DOMContentLoaded', () => {
     hexValue.innerText = hex.toUpperCase();
     rgbValue.innerText = 'rgb(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ')';
     hslValue.innerText = 'hsl(' + hsl.h + ', ' + hsl.s + '%, ' + hsl.l + '%)';
+    hexInput.value = hex.toUpperCase();
   }
 
   function addToHistory(hex: string) {
@@ -1129,4 +1196,5 @@ document.addEventListener('DOMContentLoaded', () => {
   // Run pending flows after initial render
   void checkPendingImage();
   void checkPendingCapture();
+  void checkPendingPickResult();
 });

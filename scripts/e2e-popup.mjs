@@ -33,6 +33,12 @@ const port = server.address().port;
 const popupFile = `http://localhost:${port}/popup.html`;
 mkdirSync(new URL('../artifacts', import.meta.url).pathname, { recursive: true });
 
+// Global watchdog: fail fast instead of hanging
+setTimeout(() => {
+  console.error('WATCHDOG: e2e run exceeded 90s');
+  process.exit(1);
+}, 90000).unref();
+
 const browserStub = `
   window.browser = {
     runtime: { id: "test",
@@ -50,7 +56,6 @@ const browserStub = `
 `;
 
 const context = await chromium.launchPersistentContext('', {
-  channel: 'chrome',
   headless: true,
 });
 const errors = [];
@@ -124,13 +129,38 @@ await page.click('[data-tab="favorites"]');
 const favoritesEmpty = await page.locator('#favorites-empty').isVisible();
 console.log('favorites empty state visible:', favoritesEmpty);
 
+// NEW: hex input — type a color, Enter, expect display update
+await page.click('[data-tab="picker"]');
+await page.fill('#hex-input', 'ff8000');
+await page.press('#hex-input', 'Enter');
+await page.waitForTimeout(200);
+const hexDisplay = await page.locator('#hex-value').textContent();
+console.log('hex input applied:', hexDisplay);
+if (hexDisplay !== '#FF8000') throw new Error('hex input did not apply: ' + hexDisplay);
+
+// NEW: palettes render from seeded storage
+await page.evaluate(() => {
+  localStorage.setItem(
+    'chromaLens_palettes',
+    JSON.stringify([
+      { id: 'p1', name: 'Test Palette', colors: ['#ff0000', '#00ff00', '#0000ff'], source: 'site', createdAt: 1 },
+    ]),
+  );
+});
+await page.click('[data-tab="favorites"]');
+await page.waitForTimeout(200);
+const paletteCards = await page.locator('#palettes-grid .palette-card').count();
+console.log('palette cards rendered:', paletteCards);
+await page.screenshot({ path: 'artifacts/popup-palettes.png' });
+if (paletteCards !== 1) throw new Error('palettes did not render');
+
 if (errors.length > 0) {
   console.log('=== CONSOLE/PAGE ERRORS ===');
   console.log(errors.join('\n'));
   process.exit(1);
 }
 console.log('NO CONSOLE ERRORS — popup verified clean');
-await context.close();
+process.exit(0); // browsers die with the process; context.close() hangs on some builds
 
 } catch (err) {
   await dumpState();

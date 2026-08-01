@@ -1459,3 +1459,95 @@ header h1 {
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
     }
 }
+/* Hex input + palette UI */
+.hex-input {
+    flex: 1;
+    min-width: 0;
+    background: var(--glass-bg, rgba(255,255,255,0.06));
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.12));
+    border-radius: 8px;
+    color: var(--text, inherit);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    padding: 6px 10px;
+    outline: none;
+    text-transform: uppercase;
+}
+.hex-input:focus {
+    border-color: var(--accent, #667eea);
+}
+.hex-input::placeholder {
+    text-transform: none;
+    opacity: 0.5;
+}
+
+.palette-save-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.palettes-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.palette-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--glass-bg, rgba(255,255,255,0.06));
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.12));
+    border-radius: 10px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+.palette-card:hover {
+    border-color: var(--accent, #667eea);
+}
+
+.palette-swatches {
+    display: flex;
+    overflow: hidden;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+.palette-swatches span {
+    width: 18px;
+    height: 26px;
+    display: block;
+}
+
+.palette-info {
+    flex: 1;
+    min-width: 0;
+}
+.palette-name {
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.palette-meta {
+    font-size: 10px;
+    color: var(--text-muted, rgba(0,0,0,0.5));
+}
+
+.palette-delete {
+    background: none;
+    border: none;
+    color: var(--text-muted, rgba(0,0,0,0.5));
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+.palette-delete:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}

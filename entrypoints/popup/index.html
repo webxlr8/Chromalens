@@ -144,6 +144,11 @@
                         <span class="label">NAME</span>
                         <span class="value" id="color-name">White</span>
                     </div>
+                    <div class="value-row">
+                        <span class="label">INPUT</span>
+                        <input id="hex-input" class="hex-input" placeholder="#RRGGBB" maxlength="7"
+                            spellcheck="false" autocomplete="off" aria-label="Enter a hex color">
+                    </div>
                     <div class="value-row" data-format="hex">
                         <span class="label">HEX</span>
                         <span class="value" id="hex-value">#FFFFFF</span>
@@ -327,8 +332,18 @@
                     <!-- Extracted colors go here -->
                 </div>
                 <div id="extract-actions" class="export-actions">
+                    <button id="save-palette-btn" class="action-btn" title="Save as named palette">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                        Save Palette
+                    </button>
                     <button id="extract-css" class="action-btn">Copy CSS</button>
                     <button id="extract-json" class="action-btn">Copy JSON</button>
+                </div>
+                <div id="palette-save-row" class="palette-save-row hidden">
+                    <input id="palette-name-input" class="hex-input" placeholder="Palette name" maxlength="40"
+                        spellcheck="false" autocomplete="off" aria-label="Palette name">
+                    <button id="palette-save-confirm" class="action-btn primary">Save</button>
+                    <button id="palette-save-cancel" class="action-btn">Cancel</button>
                 </div>
             </div>
 
@@ -402,6 +417,28 @@
                 </svg>
                 <p>No saved colors yet</p>
                 <small>Click the heart icon on any color to save it</small>
+            </div>
+            <div id="palettes-section">
+                <div class="favorites-header">
+                    <h3>Palettes</h3>
+                </div>
+                <div id="palettes-grid" class="palettes-grid">
+                    <!-- Saved palettes go here -->
+                </div>
+                <div id="palettes-empty" class="empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="empty-icon">
+                        <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+                        <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+                        <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+                        <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+                        <path
+                            d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.707-.484 2.179-1.208.402-.614.398-1.42.01-2.047a2.438 2.438 0 0 1 0-2.49c.387-.626.384-1.432-.019-2.046A2.438 2.438 0 0 1 14.17 11H21c0-4.97-4.03-9-9-9Z" />
+                    </svg>
+                    <p>No saved palettes yet</p>
+                    <small>Capture a site, screen, or image and hit "Save Palette"</small>
+                </div>
             </div>
         </div>
 
