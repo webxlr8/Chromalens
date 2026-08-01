@@ -10,6 +10,8 @@ export default defineConfig({
       browser === 'firefox'
         ? 'ChromaLens - Color Picker'
         : 'ChromaLens - Color Picker & Accessibility Toolkit',
+    // Display label shown in the Chrome/Edge Web Store (version stays store-valid)
+    version_name: browser === 'firefox' ? undefined : '2.0.0 Beta',
     description:
       browser === 'firefox'
         ? 'Professional color picker, palette extractor, contrast checker & WCAG accessibility auditor.'
