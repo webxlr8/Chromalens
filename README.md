@@ -1,8 +1,8 @@
 # ChromaLens — Color Picker & Accessibility Toolkit
 
-[![CI](https://github.com/azharudh33n/Color-Picker/actions/workflows/ci.yml/badge.svg)](https://github.com/azharudh33n/Color-Picker/actions/workflows/ci.yml)
+[![CI](https://github.com/webxlr8/Chromalens/actions/workflows/ci.yml/badge.svg)](https://github.com/webxlr8/Chromalens/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.0.0--beta.1-orange.svg)](https://github.com/azharudh33n/Color-Picker/releases)
+[![Version](https://img.shields.io/badge/version-2.0.0--beta.1-orange.svg)](https://github.com/webxlr8/Chromalens/releases)
 
 **Status: Beta (v2.0.0-beta.1)** — see [RELEASE.md](RELEASE.md) for the release plan and [CHANGELOG.md](CHANGELOG.md) for history.
 

@@ -27,6 +27,6 @@ All notable changes to ChromaLens are documented here. Format follows [Keep a Ch
 
 Initial public version (vanilla JS MV3). Chromium-only; cross-browser compatibility fix via event-page background.
 
-[Unreleased]: https://github.com/azharudh33n/Color-Picker/compare/v2.0.0-beta.1...HEAD
-[2.0.0-beta.1]: https://github.com/azharudh33n/Color-Picker/releases/tag/v2.0.0-beta.1
-[1.1.0]: https://github.com/azharudh33n/Color-Picker/releases/tag/v1.1.0
+[Unreleased]: https://github.com/webxlr8/Chromalens/compare/v2.0.0-beta.1...HEAD
+[2.0.0-beta.1]: https://github.com/webxlr8/Chromalens/releases/tag/v2.0.0-beta.1
+[1.1.0]: https://github.com/webxlr8/Chromalens/releases/tag/v1.1.0
