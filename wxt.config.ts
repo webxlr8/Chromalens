@@ -20,7 +20,7 @@ export default defineConfig({
         ? 'Professional color picker, palette extractor, contrast checker & WCAG accessibility auditor.'
         : 'Professional color picker, palette extractor, contrast checker & WCAG accessibility auditor. Pick colors, generate harmonies.',
     author: 'Muhammed Azharudheen K J - YIB Global Technology Services LLP',
-    homepage_url: 'https://webxlr8.com',
+    homepage_url: 'https://chromalens.wx8.org',
     permissions: ['activeTab', 'scripting', 'storage', 'contextMenus', 'tabs'],
     icons: {
       16: '/icons/icon16.png',
